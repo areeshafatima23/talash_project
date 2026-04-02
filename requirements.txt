@@ -1,0 +1,4 @@
+PyMuPDF==1.22.5
+pdfplumber
+pandas
+streamlit
