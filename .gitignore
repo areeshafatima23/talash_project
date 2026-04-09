@@ -4,7 +4,9 @@ __pycache__/
 *.pyo
 *.pyd
 venv/
-
+.env
+*.csv
+*.json
 # VS Code
 .vscode/
 
