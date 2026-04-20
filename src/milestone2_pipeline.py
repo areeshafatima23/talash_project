@@ -1,197 +1,180 @@
 # src/milestone2_pipeline.py
+
 import os
 import json
 import pandas as pd
 from loader import load_cvs_from_folder
 from parser import extract_full_profile
-from collections import Counter
 from datetime import datetime
 
-def analyze_education(education_list):
-    """
-    Analyze education profile: count degrees, detect missing fields
-    """
-    degrees = []
-    missing_fields = []
-    for edu in education_list:
-        degree = edu.get("degree", "").strip()
-        institution = edu.get("institution", "").strip()
-        start = edu.get("start_year", "")
-        end = edu.get("end_year", "")
-        marks = edu.get("marks_or_cgpa", "")
-        specialization = edu.get("specialization", "")
-        degrees.append(degree if degree else "Unknown Degree")
-        # Check for missing info
-        if not all([degree, institution, start, end]):
-            missing_fields.append(f"Education: {degree or 'N/A'} at {institution or 'N/A'}")
-    return degrees, missing_fields
 
+# EDUCATION ANALYSIS
+def analyze_education(education_list):
+    missing = []
+
+    for edu in education_list:
+        if not edu.get("degree") or not edu.get("institution"):
+            missing.append(f"Education missing: {edu}")
+
+    return missing
+
+
+# EXPERIENCE ANALYSIS
 def analyze_experience(experience_list):
-    """
-    Analyze professional experience: total experience, current job
-    """
+    missing = []
     total_months = 0
-    missing_fields = []
-    current_job = None
+
     for exp in experience_list:
         start = exp.get("start_date", "")
         end = exp.get("end_date", "")
-        job_title = exp.get("job_title", "")
-        org = exp.get("organization", "")
-        # Missing info detection
-        if not all([start, end, job_title, org]):
-            missing_fields.append(f"Experience: {job_title or 'N/A'} at {org or 'N/A'}")
-        # Calculate total experience in months
+
+        if not exp.get("job_title") or not exp.get("organization"):
+            missing.append(f"Experience missing: {exp}")
+
         try:
-            start_dt = datetime.strptime(start, "%B %Y") if start else None
-            end_dt = datetime.strptime(end, "%B %Y") if end and end.lower() != "present" else datetime.now()
-            if start_dt:
+            if start:
+                start_dt = datetime.strptime(start, "%B %Y")
+                end_dt = datetime.now() if end.lower() == "present" else datetime.strptime(end, "%B %Y")
+
                 months = (end_dt.year - start_dt.year) * 12 + (end_dt.month - start_dt.month)
                 total_months += max(months, 0)
         except:
             pass
-        # Detect current job
-        if end.lower() == "present":
-            current_job = f"{job_title} at {org}"
-    return total_months, current_job, missing_fields
 
-def detect_missing_info(profile):
-    """
-    Detect missing key information and generate missing info list
-    """
+    return total_months, missing
+
+
+# MISSING INFO DETECTION
+def detect_missing(profile):
     missing = []
-    if not profile.get("name"):
-        missing.append("Name")
-    if not profile.get("email"):
-        missing.append("Email")
-    if not profile.get("phone"):
-        missing.append("Phone")
-    if not profile.get("address"):
-        missing.append("Address")
-    # Education and experience
-    _, edu_missing = analyze_education(profile.get("education", []))
-    _, _, exp_missing = analyze_experience(profile.get("experience", []))
-    missing.extend(edu_missing)
-    missing.extend(exp_missing)
+
+    for field in ["name", "email", "phone", "address"]:
+        if not profile.get(field):
+            missing.append(field)
+
+    missing += analyze_education(profile.get("education", []))
+    _, exp_missing = analyze_experience(profile.get("experience", []))
+    missing += exp_missing
+
     return missing
 
-def draft_missing_info_email(profile, missing_fields):
-    """
-    Generate a simple draft email for the candidate to fill missing info
-    """
+
+# EMAIL GENERATION
+def draft_email(profile, missing_fields):
     if not profile.get("email"):
-        return "Cannot generate email: missing candidate email."
+        return "No email found"
+
     name = profile.get("name", "Candidate")
-    missing_str = ", ".join(missing_fields)
-    email_body = f"""Subject: Request for Missing Information
 
-Hi {name},
+    return f"""
+Subject: Missing Information Request
 
-We are reviewing your CV and noticed the following missing information:
-{missing_str}
+Dear {name},
 
-Kindly provide the missing details at your earliest convenience.
+We noticed missing information in your CV:
 
-Best regards,
-Recruitment Team
+{", ".join(missing_fields)}
+
+Please update your CV.
+
+Regards,
+HR Team
 """
-    return email_body
 
+
+# MAIN PIPELINE
 def run_pipeline(cvs_folder, output_dir):
-    """
-    Main Milestone 2 pipeline:
-    - Load CVs
-    - Extract full profiles
-    - Analyze education and experience
-    - Detect missing info
-    - Save multiple CSVs + JSONs
-    - Generate draft emails
-    """
     cvs = load_cvs_from_folder(cvs_folder)
+
     if not cvs:
-        print("No PDFs found.")
+        print("No CVs found")
         return []
 
     os.makedirs(output_dir, exist_ok=True)
 
-    personal_rows = []
-    education_rows = []
-    experience_rows = []
-    skills_rows = []
-    missing_info_rows = []
-    draft_email_rows = []
+    personal, education, experience, skills = [], [], [], []
+    missing_rows, email_rows = [], []
+    all_profiles = []
 
     for cv in cvs:
-        print(f"Processing: {cv['file_name']}...")
+        print(f"Processing {cv['file_name']}")
+
         profile = extract_full_profile(cv["text"])
         profile["file_name"] = cv["file_name"]
+        all_profiles.append(profile)
 
-        # ── Personal Info CSV ─────────────────────────────
-        personal_rows.append({
-            "file_name": profile["file_name"],
+        #  PERSONAL 
+        personal.append({
+            "file_name": cv["file_name"],
             "name": profile.get("name", ""),
             "email": profile.get("email", ""),
             "phone": profile.get("phone", ""),
             "address": profile.get("address", "")
         })
 
-        # ── Education CSV ─────────────────────────────────
-        for edu in profile.get("education", []):
-            education_rows.append({
-                "file_name": profile["file_name"],
-                "degree": edu.get("degree", ""),
-                "institution": edu.get("institution", ""),
-                "start_year": edu.get("start_year", ""),
-                "end_year": edu.get("end_year", ""),
-                "marks_or_cgpa": edu.get("marks_or_cgpa", ""),
-                "specialization": edu.get("specialization", "")
+        #  EDUCATION 
+        for e in profile.get("education", []):
+            education.append({
+                "file_name": cv["file_name"],
+                "degree": e.get("degree", ""),
+                "institution": e.get("institution", ""),
+                "start_year": e.get("start_year", ""),
+                "end_year": e.get("end_year", "")
             })
 
-        # ── Experience CSV ───────────────────────────────
-        for exp in profile.get("experience", []):
-            experience_rows.append({
-                "file_name": profile["file_name"],
-                "job_title": exp.get("job_title", ""),
-                "organization": exp.get("organization", ""),
-                "start_date": exp.get("start_date", ""),
-                "end_date": exp.get("end_date", ""),
-                "description": exp.get("description", "")
+        # EXPERIENCE 
+        for ex in profile.get("experience", []):
+            experience.append({
+                "file_name": cv["file_name"],
+                "job_title": ex.get("job_title", ""),
+                "organization": ex.get("organization", ""),
+                "start_date": ex.get("start_date", ""),
+                "end_date": ex.get("end_date", "")
             })
 
-        # ── Skills CSV ───────────────────────────────────
-        for skill in profile.get("skills", []):
-            skills_rows.append({
-                "file_name": profile["file_name"],
-                "skill": skill
+        #  SKILLS 
+        for s in profile.get("skills", []):
+            skills.append({
+                "file_name": cv["file_name"],
+                "skill": s
             })
 
-        # ── Missing Info Detection ───────────────────────
-        missing_fields = detect_missing_info(profile)
-        if missing_fields:
-            missing_info_rows.append({
-                "file_name": profile["file_name"],
-                "missing_fields": ", ".join(missing_fields)
+        #  MISSING INFO 
+        missing = detect_missing(profile)
+
+        if missing:
+            missing_rows.append({
+                "file_name": cv["file_name"],
+                "missing_fields": ", ".join(missing)
             })
 
-        # ── Draft Emails ────────────────────────────────
-        if profile.get("email"):
-            draft_email_rows.append({
-                "file_name": profile["file_name"],
-                "candidate_email": profile["email"],
-                "draft_email": draft_missing_info_email(profile, missing_fields)
-            })
+        #  EMAIL 
+        email_rows.append({
+            "file_name": cv["file_name"],
+            "email": profile.get("email", ""),
+            "draft_email": draft_email(profile, missing)
+        })
 
-        # ── Save JSON per candidate ─────────────────────
-        with open(os.path.join(output_dir, profile["file_name"].replace(".pdf", "_profile.json")), "w") as f:
+        # SAVE JSON
+        json_path = os.path.join(output_dir, cv["file_name"].replace(".pdf", ".json"))
+        with open(json_path, "w") as f:
             json.dump(profile, f, indent=2)
 
-    # ── Save CSVs ─────────────────────────────────────
-    pd.DataFrame(personal_rows).to_csv(os.path.join(output_dir, "personal_info.csv"), index=False)
-    pd.DataFrame(education_rows).to_csv(os.path.join(output_dir, "education.csv"), index=False)
-    pd.DataFrame(experience_rows).to_csv(os.path.join(output_dir, "experience.csv"), index=False)
-    pd.DataFrame(skills_rows).to_csv(os.path.join(output_dir, "skills.csv"), index=False)
-    pd.DataFrame(missing_info_rows).to_csv(os.path.join(output_dir, "missing_info.csv"), index=False)
-    pd.DataFrame(draft_email_rows).to_csv(os.path.join(output_dir, "draft_emails.csv"), index=False)
 
-    print(f"Milestone 2 CSVs and JSONs saved in {output_dir}")
-    return cvs
+    # SAVE CSV SAFELY
+
+    def safe_save(df, path):
+        if len(df) > 0:
+            df.to_csv(path, index=False)
+        else:
+            pd.DataFrame(columns=["empty"]).to_csv(path, index=False)
+
+    safe_save(pd.DataFrame(personal), os.path.join(output_dir, "personal_info.csv"))
+    safe_save(pd.DataFrame(education), os.path.join(output_dir, "education.csv"))
+    safe_save(pd.DataFrame(experience), os.path.join(output_dir, "experience.csv"))
+    safe_save(pd.DataFrame(skills), os.path.join(output_dir, "skills.csv"))
+    safe_save(pd.DataFrame(missing_rows), os.path.join(output_dir, "missing_info.csv"))
+    safe_save(pd.DataFrame(email_rows), os.path.join(output_dir, "draft_emails.csv"))
+
+    print("Milestone 2 completed")
+    return all_profiles
