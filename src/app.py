@@ -10,7 +10,7 @@ from milestone1_pipeline import run_pipeline as run_m1_pipeline
 from milestone2_pipeline import run_pipeline as run_m2_pipeline
 
 st.set_page_config(page_title="TALASH", layout="wide")
-st.title("🎓 TALASH — CV Analyzer")
+st.title("TALASH")
 st.caption("Talent Acquisition & Learning Automation for Smart Hiring")
 
 mode = st.sidebar.radio(
@@ -18,7 +18,7 @@ mode = st.sidebar.radio(
     ["Upload Single CV", "Process CVs Folder (Milestone 1)", "Milestone 2: Analysis Pipeline"]
 )
 
-# ── Mode 1 ──────────────────────────────────
+# Mode 1
 if mode == "Upload Single CV":
     st.header("Upload a CV")
     uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
@@ -80,7 +80,7 @@ if mode == "Upload Single CV":
             "text/csv"
         )
 
-# ── Mode 2 (Milestone 1) ─────────────────────────────────
+# Mode 2 (Milestone 1) 
 elif mode == "Process CVs Folder (Milestone 1)":
     st.header("Process All CVs from Folder (Milestone 1)")
     st.info("Place PDF CVs in the `cvs/` folder, then click Run.")
@@ -104,7 +104,7 @@ elif mode == "Process CVs Folder (Milestone 1)":
         else:
             st.warning("No CVs found in the folder.")
 
-# ── Mode 3 (Milestone 2) ─────────────────────────────────
+# Mode 3 (Milestone 2) 
 elif mode == "Milestone 2: Analysis Pipeline":
     st.header("Milestone 2: CV Analysis & Missing Info Detection")
     st.info("Place PDF CVs in the `cvs/` folder, then click Run.")
