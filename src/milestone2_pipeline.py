@@ -91,8 +91,6 @@ def run_pipeline(cvs_folder, output_dir):
         return []
 
     os.makedirs(output_dir, exist_ok=True)
-
-    # ✅ ADDED publications list
     personal, education, experience, skills, publications = [], [], [], [], []
     missing_rows, email_rows = [], []
     all_profiles = []
@@ -140,7 +138,6 @@ def run_pipeline(cvs_folder, output_dir):
                 "skill": s
             })
 
-        # ✅ NEW: PUBLICATIONS
         for pub in profile.get("publications", []):
             publications.append({
                 "file_name": cv["file_name"],
@@ -172,8 +169,6 @@ def run_pipeline(cvs_folder, output_dir):
             json.dump(profile, f, indent=2)
 
 
-    # SAVE CSV
-
     def safe_save(df, path):
         if len(df) > 0:
             df.to_csv(path, index=False)
@@ -184,10 +179,7 @@ def run_pipeline(cvs_folder, output_dir):
     safe_save(pd.DataFrame(education), os.path.join(output_dir, "education.csv"))
     safe_save(pd.DataFrame(experience), os.path.join(output_dir, "experience.csv"))
     safe_save(pd.DataFrame(skills), os.path.join(output_dir, "skills.csv"))
-
-    # ✅ NEW SAVE
     safe_save(pd.DataFrame(publications), os.path.join(output_dir, "publications.csv"))
-
     safe_save(pd.DataFrame(missing_rows), os.path.join(output_dir, "missing_info.csv"))
     safe_save(pd.DataFrame(email_rows), os.path.join(output_dir, "draft_emails.csv"))
 
