@@ -131,6 +131,7 @@ elif mode == "Milestone 2: Analysis Pipeline":
             "education.csv",
             "experience.csv",
             "skills.csv",
+            "publications.csv",
             "missing_info.csv",
             "draft_emails.csv"
         ]
@@ -176,6 +177,23 @@ elif mode == "Milestone 2: Analysis Pipeline":
 
             fig2 = px.bar(top_skills.head(20), x="skill", y="count", title="Top 20 Skills")
             st.plotly_chart(fig2, width="stretch")
+        # ── PUBLICATIONS VISUALS ──
+        pub_path = os.path.join(output_dir, "publications.csv")
+        pub_df = safe_read(pub_path)
+
+        if not pub_df.empty:
+            st.subheader("Publications Analysis")
+
+            pub_counts = pub_df["file_name"].value_counts().reset_index()
+            pub_counts.columns = ["candidate", "num_publications"]
+
+            fig_pub = px.bar(
+                pub_counts,
+                x="candidate",
+                y="num_publications",
+                title="Publications per Candidate"
+                )
+            st.plotly_chart(fig_pub, width="stretch")
 
         # ── MISSING INFO VISUALS ──
         missing_path = os.path.join(output_dir, "missing_info.csv")

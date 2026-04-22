@@ -92,7 +92,8 @@ def run_pipeline(cvs_folder, output_dir):
 
     os.makedirs(output_dir, exist_ok=True)
 
-    personal, education, experience, skills = [], [], [], []
+    # ✅ ADDED publications list
+    personal, education, experience, skills, publications = [], [], [], [], []
     missing_rows, email_rows = [], []
     all_profiles = []
 
@@ -103,7 +104,7 @@ def run_pipeline(cvs_folder, output_dir):
         profile["file_name"] = cv["file_name"]
         all_profiles.append(profile)
 
-        #  PERSONAL 
+        # PERSONAL
         personal.append({
             "file_name": cv["file_name"],
             "name": profile.get("name", ""),
@@ -112,7 +113,7 @@ def run_pipeline(cvs_folder, output_dir):
             "address": profile.get("address", "")
         })
 
-        #  EDUCATION 
+        # EDUCATION
         for e in profile.get("education", []):
             education.append({
                 "file_name": cv["file_name"],
@@ -122,7 +123,7 @@ def run_pipeline(cvs_folder, output_dir):
                 "end_year": e.get("end_year", "")
             })
 
-        # EXPERIENCE 
+        # EXPERIENCE
         for ex in profile.get("experience", []):
             experience.append({
                 "file_name": cv["file_name"],
@@ -132,14 +133,24 @@ def run_pipeline(cvs_folder, output_dir):
                 "end_date": ex.get("end_date", "")
             })
 
-        #  SKILLS 
+        # SKILLS
         for s in profile.get("skills", []):
             skills.append({
                 "file_name": cv["file_name"],
                 "skill": s
             })
 
-        #  MISSING INFO 
+        # ✅ NEW: PUBLICATIONS
+        for pub in profile.get("publications", []):
+            publications.append({
+                "file_name": cv["file_name"],
+                "title": pub.get("title", ""),
+                "venue": pub.get("venue", ""),
+                "year": pub.get("year", ""),
+                "authors": pub.get("authors", "")
+            })
+
+        # MISSING INFO
         missing = detect_missing(profile)
 
         if missing:
@@ -148,7 +159,7 @@ def run_pipeline(cvs_folder, output_dir):
                 "missing_fields": ", ".join(missing)
             })
 
-        #  EMAIL 
+        # EMAIL
         email_rows.append({
             "file_name": cv["file_name"],
             "email": profile.get("email", ""),
@@ -161,7 +172,7 @@ def run_pipeline(cvs_folder, output_dir):
             json.dump(profile, f, indent=2)
 
 
-    # SAVE CSV SAFELY
+    # SAVE CSV
 
     def safe_save(df, path):
         if len(df) > 0:
@@ -173,6 +184,10 @@ def run_pipeline(cvs_folder, output_dir):
     safe_save(pd.DataFrame(education), os.path.join(output_dir, "education.csv"))
     safe_save(pd.DataFrame(experience), os.path.join(output_dir, "experience.csv"))
     safe_save(pd.DataFrame(skills), os.path.join(output_dir, "skills.csv"))
+
+    # ✅ NEW SAVE
+    safe_save(pd.DataFrame(publications), os.path.join(output_dir, "publications.csv"))
+
     safe_save(pd.DataFrame(missing_rows), os.path.join(output_dir, "missing_info.csv"))
     safe_save(pd.DataFrame(email_rows), os.path.join(output_dir, "draft_emails.csv"))
 
