@@ -8,6 +8,7 @@ from loader import extract_text_from_pdf, load_cvs_from_folder
 from parser import extract_full_profile
 from milestone1_pipeline import run_pipeline as run_m1_pipeline
 from milestone2_pipeline import run_pipeline as run_m2_pipeline
+from milestone3_pipeline import run_pipeline as run_m3_pipeline
 
 st.set_page_config(page_title="TALASH", layout="wide")
 st.title("TALASH")
@@ -15,7 +16,7 @@ st.caption("Talent Acquisition & Learning Automation for Smart Hiring")
 
 mode = st.sidebar.radio(
     "Mode", 
-    ["Upload Single CV", "Process CVs Folder (Milestone 1)", "Milestone 2: Analysis Pipeline"]
+    ["Upload Single CV", "Process CVs Folder (Milestone 1)", "Milestone 2: Analysis Pipeline", "Milestone 3: Comprehensive Analysis"]
 )
 
 # Mode 1
@@ -215,3 +216,48 @@ elif mode == "Milestone 2: Analysis Pipeline":
                 title="Missing Information Distribution per CV"
             )
             st.plotly_chart(fig_pie2, width="stretch")
+
+# Mode 4 (Milestone 3)
+elif mode == "Milestone 3: Educational Analysis" or mode == "Milestone 3: Comprehensive Analysis":
+    st.header("Milestone 3: Educational & Research Profile Analysis")
+    st.info("Place PDF CVs in the `cvs/` folder, then click Run.")
+
+    cvs_folder = os.path.join(os.path.dirname(__file__), "../cvs")
+    output_dir = os.path.join(os.path.dirname(__file__), "../output/milestone3")
+
+    if st.button("Run Milestone 3 Pipeline"):
+        with st.spinner("Analyzing Profiles..."):
+            analysis_results, global_edu, global_journals, global_confs = run_m3_pipeline(cvs_folder, output_dir)
+            
+        st.success(f"Milestone 3 processing completed! Saved in {output_dir}")
+        
+        tab1, tab2, tab3 = st.tabs(["Overall Analysis", "Educational Records", "Research Records"])
+        
+        with tab1:
+            st.subheader("Overall Candidates Analysis")
+            if analysis_results:
+                st.dataframe(pd.DataFrame(analysis_results), width="stretch")
+        
+        with tab2:
+            st.subheader("Educational Records (Normalized & Ranked)")
+            if global_edu:
+                st.dataframe(pd.DataFrame(global_edu), width="stretch")
+                
+                # Additional visual
+                df_edu = pd.DataFrame(global_edu)
+                if 'marks_normalized_percent' in df_edu.columns and not df_edu['marks_normalized_percent'].isnull().all():
+                    fig_perf = px.box(df_edu, x="level", y="marks_normalized_percent", title="Academic Performance Distribution by Level")
+                    st.plotly_chart(fig_perf, width="stretch")
+        
+        with tab3:
+            st.subheader("Journal Publications Analysis")
+            if global_journals:
+                st.dataframe(pd.DataFrame(global_journals), width="stretch")
+            else:
+                st.write("No journal publications found.")
+                
+            st.subheader("Conference Publications Analysis")
+            if global_confs:
+                st.dataframe(pd.DataFrame(global_confs), width="stretch")
+            else:
+                st.write("No conference publications found.")

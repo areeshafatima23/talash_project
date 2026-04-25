@@ -72,6 +72,7 @@ Return exactly this structure:
   "education": [
     {{
       "degree": "degree title",
+      "level": "one of: SSE, HSSC, UG, PG, PhD or unknown",
       "institution": "university or school name",
       "start_year": "YYYY or empty string",
       "end_year": "YYYY or empty string",
@@ -92,9 +93,12 @@ Return exactly this structure:
   "publications": [
     {{
       "title": "paper title",
+      "type": "Journal or Conference",
       "venue": "journal or conference name",
       "year": "YYYY or empty",
-      "authors": "all authors as string"
+      "authors": "all authors as string",
+      "issn": "ISSN if mentioned or empty",
+      "publisher": "e.g. IEEE, Springer, ACM, Elsevier or empty"
     }}
   ],
   "patents": [],
