@@ -1,40 +1,27 @@
 # src/parser.py
-
 import re
 import json
 import time
-import os
 from dotenv import load_dotenv
+load_dotenv()
+import os
 from openai import OpenAI
 
-# Load environment variables from .env
-load_dotenv()
-
-# Read API key
-API_KEY = os.getenv("OPENROUTER_API_KEY")
-
-# Create client only if key exists
-client = None
-if API_KEY:
-    client = OpenAI(
-        base_url="https://openrouter.ai/api/v1",
-        api_key=API_KEY
-    )
+client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=os.getenv("OPENROUTER_API_KEY")
+)
 
 # Will try each model in order until one works
 FREE_MODELS = [
-    "openrouter/free",                           # auto-picks best available free model
-    "meta-llama/llama-3.3-70b-instruct:free",   # fallback 1
-    "google/gemma-3-27b-it:free",               # fallback 2
-    "nvidia/llama-3.1-nemotron-nano-8b-v1:free",# fallback 3
-    "qwen/qwen3-8b:free",                       # fallback 4
+    "openrouter/free",                              # auto-picks best available free model
+    "meta-llama/llama-3.3-70b-instruct:free",       # fallback 1
+    "google/gemma-3-27b-it:free",                   # fallback 2
+    "nvidia/llama-3.1-nemotron-nano-8b-v1:free",    # fallback 3
+    "qwen/qwen3-8b:free",                           # fallback 4
 ]
 
 def call_llm(prompt):
-    if client is None:
-        print("No OPENROUTER_API_KEY found. Skipping LLM call.")
-        return None
-
     for model in FREE_MODELS:
         try:
             print(f"Trying model: {model}")
@@ -47,9 +34,8 @@ def call_llm(prompt):
         except Exception as e:
             print(f"Failed {model}: {e}")
             time.sleep(2)
-
+            continue
     return None
-
 
 def extract_full_profile(text):
     prompt = f"""
@@ -109,69 +95,73 @@ CV Text:
     raw = call_llm(prompt)
 
     if raw is None:
-        print("All models failed or API key missing. Using regex fallback.")
+        print("All models failed, using regex fallback.")
         return {
             "name": extract_name(text),
             "email": extract_email(text),
             "phone": extract_phone(text),
-            "address": "",
-            "education": [],
-            "experience": [],
-            "skills": [],
-            "publications": [],
-            "patents": [],
-            "books": [],
-            "certifications": []
+            "address": "", "education": [], "experience": [],
+            "skills": [], "publications": [], "patents": [],
+            "books": [], "certifications": []
         }
 
     try:
-        # Remove markdown code fences if model returns them
-        raw = raw.strip()
-        raw = re.sub(r"^```json\s*", "", raw)
-        raw = re.sub(r"^```\s*", "", raw)
-        raw = re.sub(r"\s*```$", "", raw)
-
+        raw = re.sub(r"^```(?:json)?", "", raw).strip()
+        raw = re.sub(r"```$", "", raw).strip()
         return json.loads(raw)
-
     except json.JSONDecodeError as e:
-        print(f"JSON parse failed: {e}\nRaw output:\n{raw[:500]}")
+        print(f"JSON parse failed: {e}\nRaw: {raw[:300]}")
         return _empty_profile()
 
 
 def _empty_profile():
     return {
-        "name": "",
-        "email": "",
-        "phone": "",
-        "address": "",
-        "education": [],
-        "experience": [],
-        "skills": [],
-        "publications": [],
-        "patents": [],
-        "books": [],
+        "name": "", "email": "", "phone": "", "address": "",
+        "education": [], "experience": [], "skills": [],
+        "publications": [], "patents": [], "books": [],
         "certifications": []
     }
-
 
 def extract_email(text):
     matches = re.findall(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", text)
     return matches[0] if matches else ""
 
-
 def extract_phone(text):
-    matches = re.findall(r"\+?\d[\d\s\-]{6,}\d", text)
+    matches = re.findall(r"\+?\d[\d\s-]{6,}\d", text)
     return matches[0].replace("\n", "").strip() if matches else ""
-
 
 def extract_name(text):
     name_lines = re.findall(r"Name\s+([A-Z\s]+)", text)
     if name_lines:
         return " ".join(name_lines[0].split())
-
     for line in text.split("\n"):
         line = line.strip()
         if line:
             return line
-
     return ""
+
+# def _empty_profile():
+#     return {
+#         "name": "", "email": "", "phone": "", "address": "",
+#         "education": [], "experience": [], "skills": [],
+#         "publications": [], "patents": [], "books": [],
+#         "certifications": []
+#     }
+
+# def extract_email(text):
+#     matches = re.findall(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", text)
+#     return matches[0] if matches else ""
+
+# def extract_phone(text):
+#     matches = re.findall(r"\+?\d[\d\s-]{6,}\d", text)
+#     return matches[0].replace("\n", "").strip() if matches else ""
+
+# def extract_name(text):
+#     name_lines = re.findall(r"Name\s+([A-Z\s]+)", text)
+#     if name_lines:
+#         return " ".join(name_lines[0].split())
+#     for line in text.split("\n"):
+#         line = line.strip()
+#         if line:
+#             return line
+#     return ""
