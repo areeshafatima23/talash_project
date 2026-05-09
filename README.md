@@ -1,9 +1,9 @@
-Talash Project - Talent Acquisition & Learning Automation for Smart Hiring
+## Talash Project - Talent Acquisition & Learning Automation for Smart Hiring
 
-Overview:
+### Overview:
 Talash is a CV analysis system designed to automate the recruitment preprocessing stage by extracting, structuring, and analyzing candidate data from PDF CVs.
 
-Features
+### Features
 
 Milestone 1:
 - CV parsing from PDF files
@@ -48,16 +48,28 @@ Technologies Used
 
 Running the Project
 1. Clone the repository
-    _git clone <repository-link>_
+   
+  ```bash
+git clone https://github.com/areeshafatima23/talash_project
+```
 2. Install dependencies
-    _pip install -r requirements.txt_
+```bash
+pip install -r requirements.txt
+```
 3. Add API keys in .env
-    _GOOGLE_API_KEY=your_key
-    OPENAI_API_KEY=your_key_
+
+ ```bash
+GOOGLE_API_KEY=your_key
+OPENAI_API_KEY=your_key
+```
 4. Run the Streamlit app
-    _streamlit run src/app.py_
+   
+ ```bash
+streamlit run src/app.py
+```
 
 Authors
-Aimen Ahsan (467032)
-Areesha Fatima (454459)
+
+Aimen Ahsan (467032) |
+Areesha Fatima (454459) |
 Zainab Raees (462705)
